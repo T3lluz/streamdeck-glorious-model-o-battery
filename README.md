@@ -1,6 +1,6 @@
 # Glorious Model O — Stream Deck battery
 
-Stream Deck plugin plus a small Python HID reader for **Glorious Model O / O-** (wired, PID `0x0036`) and **Model O Wireless** (2.4 GHz dongle, PID `0x2022`). The key shows **battery %**, a **mint / charcoal** tile, and switches to a **charging** style when the mouse reports charging (reliable on the sinowealth / wired path; wireless dongle reporting varies by firmware).
+Stream Deck plugin plus a small Python HID reader for **Glorious Model O / O-** (wired, PID `0x0036`) and **Model O Wireless** (2.4 GHz dongle, PID `0x2022`). The key shows **battery %**, a **mint / charcoal** tile, and switches to a **charging** state (second key image + ⚡ under the percentage) when the JSON field `charging` is true. That flag comes straight from the mouse on the **wired sinowealth** protocol; on the **wireless dongle** path it is usually false unless the firmware exposes a charging status the script recognizes.
 
 ## Repository layout
 
