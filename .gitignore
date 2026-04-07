@@ -1,3 +1,5 @@
+__pycache__/
+*.py[cod]
 node_modules/
 com.t3lluz.modelobattery.sdPlugin/bin/plugin.js
 com.t3lluz.modelobattery.sdPlugin/bin/plugin.js.map

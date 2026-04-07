@@ -4,6 +4,10 @@ import { GloriousBatteryAction } from "./actions/glorious-battery.js";
 
 streamDeck.logger.setLevel("info");
 
-streamDeck.actions.registerAction(new GloriousBatteryAction());
+const batteryAction = new GloriousBatteryAction();
+streamDeck.actions.registerAction(batteryAction);
+streamDeck.system.onSystemDidWakeUp(() => {
+	batteryAction.wakeRefreshAll();
+});
 
 streamDeck.connect();

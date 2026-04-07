@@ -1,33 +1,21 @@
 {
 	"$schema": "https://schemas.elgato.com/streamdeck/plugins/manifest.json",
 	"Name": "Glorious Model O Battery",
-	"Version": "1.0.0",
+	"Version": "1.2.0",
 	"Author": "T3lluz",
 	"Actions": [
 		{
 			"Name": "Mouse battery",
 			"UUID": "com.t3lluz.modelobattery.battery",
 			"Icon": "imgs/actions/battery/icon",
-			"Tooltip": "Shows Glorious Model O / O Wireless battery from HID. Uses bundled Python reader.",
+			"Tooltip": "Large custom battery readout for Glorious Model O (Outfit font, SVG key art). Uses bundled Python HID reader.",
 			"PropertyInspectorPath": "ui/battery.html",
 			"Controllers": ["Keypad"],
 			"UserTitleEnabled": false,
 			"States": [
 				{
-					"Image": "imgs/actions/battery/key-idle",
-					"TitleAlignment": "middle",
-					"Font": {
-						"Size": 15,
-						"Weight": 600
-					}
-				},
-				{
-					"Image": "imgs/actions/battery/key-charging",
-					"TitleAlignment": "middle",
-					"Font": {
-						"Size": 15,
-						"Weight": 600
-					}
+					"Image": "imgs/actions/battery/key-default",
+					"TitleAlignment": "middle"
 				}
 			]
 		}
@@ -35,7 +23,7 @@
 	"Category": "Model O Battery",
 	"CategoryIcon": "imgs/plugin/category",
 	"CodePath": "bin/plugin.js",
-	"Description": "Live battery percentage for Glorious Model O (wired) and Model O Wireless (dongle). Shows a charging state when the mouse reports USB charging (sinowealth protocol).",
+	"Description": "Live battery percentage with large rendered text and a charging bolt overlay when the mouse reports USB power or charging. Bundled Outfit font (OFL) and Heroicons bolt (MIT).",
 	"Icon": "imgs/plugin/marketplace",
 	"SDKVersion": 3,
 	"Software": {

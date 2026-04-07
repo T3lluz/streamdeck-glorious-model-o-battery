@@ -1,12 +1,13 @@
 {
 	"name": "streamdeck-glorious-model-o-battery",
-	"version": "1.0.0",
+	"version": "1.2.0",
 	"private": true,
 	"type": "module",
 	"scripts": {
 		"build": "rolldown -c rolldown.config.ts",
 		"watch": "rolldown -c rolldown.config.ts -w",
-		"icons": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/generate-icons.ps1"
+		"icons": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/generate-icons.ps1",
+		"fetch-assets": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/fetch-assets.ps1"
 	},
 	"dependencies": {
 		"@elgato/streamdeck": "^2.0.4"

@@ -4,8 +4,9 @@ Read battery from Glorious mice via HID feature reports.
 
 - Wired Model O/O- (PID 0x0036): gloriousctl protocol — report 0x05, command 0x1D,
   prefer USB interface 1.
-- Model O Wireless dongle (PID 0x2022) and similar: protocol from korkje/mow — 65-byte
-  feature reports on USB interface 2 (not 0x05/0x1D).
+- Model O Wireless dongle (PID 0x2022): korkje/mow on USB interface 2.
+- Same mouse on USB cable (PID 0x2011): same mow report; when active, treat as on USB power
+  (Charging if level < 100%), matching mow's wired CLI behavior.
 """
 
 from __future__ import annotations
@@ -29,6 +30,8 @@ FEATURE_RESP_MIN = 8
 
 # korkje/mow — Model O Wireless / O 2
 MOW_PIDS = frozenset((0x2022, 0x2011))
+# USB cable to PC (wired mode). mow treats this as always on USB power when active — not the 2.4 GHz dongle.
+MOW_WIRED_USB_PID = 0x2011
 MOW_REPORT_ID = 0
 MOW_REPORT_LEN = 65
 # Byte 1 markers (see mow src/report/battery.rs)
@@ -97,10 +100,12 @@ def _try_sinowealth_battery(dev: hid.device) -> tuple[int, bool, int, str | None
     return level, charging, mv, None
 
 
-def _mow_wireless_status(resp: list[int] | bytes) -> tuple[str, bool]:
+def _mow_status(resp: list[int] | bytes, pid: int, level: int) -> tuple[str, bool]:
     """
-    Interpret mow battery response. Returns (label, charging_hint).
-    Charging is only clear for the wired path in mow; wireless uses activity states.
+    Interpret mow battery response. Returns (status label, charging).
+
+    For PID 0x2011 (mouse on USB cable), mow's CLI always labels output as charging while
+    active — the device is on USB power. The 2.4 GHz dongle (0x2022) does not get that rule.
     """
     if len(resp) < 9:
         return "Unknown", False
@@ -112,6 +117,10 @@ def _mow_wireless_status(resp: list[int] | bytes) -> tuple[str, bool]:
     except ValueError:
         return "Unknown", False
     if idx == 0:
+        if pid == MOW_WIRED_USB_PID:
+            if level < 100:
+                return "Charging", True
+            return "Full", False
         return "Discharging", False
     if idx == 1:
         return "Asleep", False
@@ -120,7 +129,7 @@ def _mow_wireless_status(resp: list[int] | bytes) -> tuple[str, bool]:
     return "Unknown", False
 
 
-def _try_mow_battery(dev: hid.device) -> tuple[int, bool, int, str | None] | None:
+def _try_mow_battery(dev: hid.device, pid: int) -> tuple[int, bool, int, str | None] | None:
     """korkje/mow-style Model O Wireless / O 2 (65-byte feature report, report ID 0)."""
     buf = [0] * MOW_REPORT_LEN
     buf[3] = 0x02
@@ -148,7 +157,7 @@ def _try_mow_battery(dev: hid.device) -> tuple[int, bool, int, str | None] | Non
         level = 1
     if level > 100:
         return None
-    label, chg_hint = _mow_wireless_status(resp)
+    label, chg_hint = _mow_status(resp, pid, level)
     return level, chg_hint, 0, label
 
 
@@ -166,11 +175,11 @@ def _open_and_read(info: dict) -> tuple[hid.device, tuple[int, bool, int, str | 
 
     protocols: list[tuple[str, object]] = []
     if pid in MOW_PIDS:
-        protocols.append(("mow", _try_mow_battery))
+        protocols.append(("mow", lambda d: _try_mow_battery(d, pid)))
         protocols.append(("sinowealth", _try_sinowealth_battery))
     else:
         protocols.append(("sinowealth", _try_sinowealth_battery))
-        protocols.append(("mow", _try_mow_battery))
+        protocols.append(("mow", lambda d: _try_mow_battery(d, pid)))
 
     for name, fn in protocols:
         try:
@@ -272,8 +281,8 @@ def cmd_list(vid: int) -> int:
             f"usage_page={usage_page} usage={usage}  {manu} / {prod}"
         )
     print(
-        "\nModel O Wireless (PID 0x2022): vendor feature reports are usually on USB interface 2.\n"
-        "Wired Model O/O- is usually PID 0x0036 (interface 1, gloriousctl protocol).\n"
+        "\nModel O Wireless: dongle PID 0x2022 (interface 2); USB cable PID 0x2011 (charging inferred when active).\n"
+        "Classic wired Model O/O- is usually PID 0x0036 (interface 1, gloriousctl protocol).\n"
         "Run without --pid to try common PIDs automatically."
     )
     return 0

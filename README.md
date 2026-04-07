@@ -1,6 +1,6 @@
 # Glorious Model O — Stream Deck battery
 
-Stream Deck plugin plus a small Python HID reader for **Glorious Model O / O-** (wired, PID `0x0036`) and **Model O Wireless** (2.4 GHz dongle, PID `0x2022`). The key shows **battery %**, a **mint / charcoal** tile, and switches to a **charging** state (second key image + ⚡ under the percentage) when the JSON field `charging` is true. That flag comes straight from the mouse on the **wired sinowealth** protocol; on the **wireless dongle** path it is usually false unless the firmware exposes a charging status the script recognizes.
+Stream Deck plugin plus a small Python HID reader for **Glorious Model O / O-** (wired, PID `0x0036`) and **Model O Wireless** (dongle `0x2022`, USB cable `0x2011`). The key image is a **144×144 SVG** drawn each refresh: large **Outfit** percentage (OFL font, embedded), dark mint-accent background, and a **Heroicons** lightning bolt (MIT) overlaid on the **top-right** of the number when `charging` is true in `--json`. Charging is reliable on **sinowealth** and on **USB cable (0x2011)** while active and below 100%; the **dongle** path often cannot see charging in HID.
 
 ## Repository layout
 
@@ -8,7 +8,8 @@ Stream Deck plugin plus a small Python HID reader for **Glorious Model O / O-** 
 |------|--------|
 | `glorious_battery.py` | CLI + `--json` for the plugin |
 | `com.t3lluz.modelobattery.sdPlugin/` | Stream Deck plugin bundle (copy this folder into Stream Deck’s plugins directory after `npm run build`) |
-| `src/` | TypeScript plugin source |
+| `com.t3lluz.modelobattery.sdPlugin/fonts/` | **Outfit** variable font (`Outfit-Variable.ttf`) + `OFL-Outfit.txt` |
+| `src/` | TypeScript plugin source (`key-art.ts` builds SVG data URLs) |
 
 ## Prerequisites
 
@@ -24,11 +25,15 @@ After cloning the repo you **must** compile the Node plugin (the `.gitignore` ex
 ```powershell
 cd $env:USERPROFILE\Documents\ModelOBattery
 npm install
+npm run fetch-assets
 npm run icons
 npm run build
 ```
 
-`npm run icons` generates PNG artwork under `com.t3lluz.modelobattery.sdPlugin/imgs/`. Re-run it if you delete those files.
+- `npm run fetch-assets` downloads **Outfit** from Google Fonts (OFL) into `com.t3lluz.modelobattery.sdPlugin/fonts/`. Skip if those files are already present from the repo.
+- `npm run icons` generates marketplace / placeholder PNGs under `com.t3lluz.modelobattery.sdPlugin/imgs/`.
+
+Attribution: see `com.t3lluz.modelobattery.sdPlugin/NOTICES.txt`.
 
 ## Install in Stream Deck
 
