@@ -1,0 +1,8 @@
+node_modules/
+com.t3lluz.modelobattery.sdPlugin/bin/plugin.js
+com.t3lluz.modelobattery.sdPlugin/bin/plugin.js.map
+com.t3lluz.modelobattery.sdPlugin/bin/package.json
+com.t3lluz.modelobattery.sdPlugin/logs/
+*.log
+.DS_Store
+Thumbs.db

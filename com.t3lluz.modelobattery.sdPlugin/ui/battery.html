@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<title>Glorious battery</title>
+		<meta charset="utf-8" />
+		<script src="https://sdpi-components.dev/releases/v4/sdpi-components.js"></script>
+	</head>
+	<body>
+		<sdpi-item label="Python">
+			<sdpi-textfield setting="pythonPath" placeholder="python"></sdpi-textfield>
+		</sdpi-item>
+		<sdpi-item label="Script path">
+			<sdpi-textfield
+				setting="scriptPath"
+				placeholder="Default: bundled glorious_battery.py"
+			></sdpi-textfield>
+		</sdpi-item>
+		<sdpi-item label="Poll (sec)">
+			<sdpi-range setting="pollSeconds" min="5" max="300" step="5" default="30" showlabels></sdpi-range>
+		</sdpi-item>
+	</body>
+</html>

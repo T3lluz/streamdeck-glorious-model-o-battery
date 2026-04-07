@@ -1,0 +1,13 @@
+{
+	"extends": "@tsconfig/node20/tsconfig.json",
+	"compilerOptions": {
+		"rootDir": "src",
+		"outDir": "com.t3lluz.modelobattery.sdPlugin/bin",
+		"experimentalDecorators": true,
+		"emitDecoratorMetadata": false,
+		"verbatimModuleSyntax": true,
+		"moduleResolution": "bundler",
+		"noEmit": true
+	},
+	"include": ["src/**/*.ts", "rolldown.config.ts"]
+}
