@@ -1,14 +1,14 @@
 {
 	"$schema": "https://schemas.elgato.com/streamdeck/plugins/manifest.json",
 	"Name": "Glorious Model O Battery",
-	"Version": "1.2.0",
+	"Version": "1.2.4",
 	"Author": "T3lluz",
 	"Actions": [
 		{
 			"Name": "Mouse battery",
 			"UUID": "com.t3lluz.modelobattery.battery",
 			"Icon": "imgs/actions/battery/icon",
-			"Tooltip": "Large custom battery readout for Glorious Model O (Outfit font, SVG key art). Uses bundled Python HID reader.",
+			"Tooltip": "Large battery readout for Glorious Model O (Segoe UI SVG, compact data URL). Uses bundled Python HID reader.",
 			"PropertyInspectorPath": "ui/battery.html",
 			"Controllers": ["Keypad"],
 			"UserTitleEnabled": false,
@@ -23,7 +23,7 @@
 	"Category": "Model O Battery",
 	"CategoryIcon": "imgs/plugin/category",
 	"CodePath": "bin/plugin.js",
-	"Description": "Live battery percentage with large rendered text and a charging bolt overlay when the mouse reports USB power or charging. Bundled Outfit font (OFL) and Heroicons bolt (MIT).",
+	"Description": "Live battery percentage with large on-key text and a charging bolt when the mouse reports USB power or charging. Key art uses system UI fonts for reliable Stream Deck rendering; Outfit (OFL) remains in fonts/ for attribution. Heroicons bolt (MIT).",
 	"Icon": "imgs/plugin/marketplace",
 	"SDKVersion": 3,
 	"Software": {

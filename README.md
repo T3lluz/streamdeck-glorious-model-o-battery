@@ -8,8 +8,8 @@ Stream Deck plugin plus a small Python HID reader for **Glorious Model O / O-** 
 |------|--------|
 | `glorious_battery.py` | CLI + `--json` for the plugin |
 | `com.t3lluz.modelobattery.sdPlugin/` | Stream Deck plugin bundle (copy this folder into Stream Deck’s plugins directory after `npm run build`) |
-| `com.t3lluz.modelobattery.sdPlugin/fonts/` | **Outfit** variable font (`Outfit-Variable.ttf`) + `OFL-Outfit.txt` |
-| `src/` | TypeScript plugin source (`key-art.ts` builds SVG data URLs) |
+| `com.t3lluz.modelobattery.sdPlugin/fonts/` | **Outfit** variable font + `OFL-Outfit.txt` (attribution / optional; the key SVG uses **Segoe UI** so images stay small and render reliably) |
+| `src/` | TypeScript plugin source (`key-art.ts` builds compact SVG data URLs) |
 
 ## Prerequisites
 
@@ -51,11 +51,17 @@ Attribution: see `com.t3lluz.modelobattery.sdPlugin/NOTICES.txt`.
 
 ## Key settings
 
-- **Python** — launcher command (default `python`).
+- **Python** — optional. Leave empty on Windows to try **`py -3`**, then **`python`**, then **`python3`**. The plugin keeps trying until one run prints valid battery JSON, so a `py -3` install **without** `hidapi` will not block a working `python` where you ran `pip install hidapi`. You can also set a full path or `py -3` explicitly.
 - **Script path** — leave empty to use the bundled `scripts/glorious_battery.py` inside the `.sdPlugin` folder. Override if you keep a copy elsewhere.
 - **Poll (sec)** — how often to refresh (minimum 5).
 
 Press the key to force an immediate refresh.
+
+## Troubleshooting (key works but no battery digits)
+
+1. **Custom key icon** — If you assigned a custom image to this key in Stream Deck, the app **will not show** images from the plugin until that custom icon is removed. This is [documented precedence](https://docs.elgato.com/streamdeck/sdk/guides/keys/#display-precedence): user-defined artwork overrides `setImage`. Clear the custom icon for this action.
+2. **Python / HID** — If you see **“—”** on the key, the script did not run or did not print JSON. If you see **“HID”**, Python ran but the mouse/dongle was not read (close Glorious CORE, check USB).
+3. **Re-copy the plugin** after `npm run build` so `bin/plugin.js` and `fonts/` inside `com.t3lluz.modelobattery.sdPlugin` stay in sync.
 
 ## CLI usage
 

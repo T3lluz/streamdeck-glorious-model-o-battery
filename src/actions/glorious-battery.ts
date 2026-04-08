@@ -1,4 +1,4 @@
-import { spawnSync } from "node:child_process";
+import { spawnSync, type SpawnSyncReturns } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
 
@@ -16,13 +16,10 @@ import { buildBatteryKeyDataUrl, buildErrorKeyDataUrl } from "../key-art.js";
 const PLUGIN_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const DEFAULT_SCRIPT = path.join(PLUGIN_ROOT, "scripts", "glorious_battery.py");
 
-export type BatterySettings = {
-	/** Python launcher (Windows: `python` or `py`). */
-	pythonPath?: string;
-	/** Override path to glorious_battery.py (leave empty for bundled script). */
-	scriptPath?: string;
-	/** Seconds between polls (minimum 5). */
-	pollSeconds?: number;
+const SPAWN_OPTS = {
+	encoding: "utf-8" as const,
+	timeout: 20_000,
+	windowsHide: true,
 };
 
 type BatteryJson =
@@ -42,6 +39,93 @@ type BatteryJson =
 			error: string;
 			error_code?: string;
 	  };
+
+export type BatterySettings = {
+	/** Python launcher (Windows: `python` or `py`). */
+	pythonPath?: string;
+	/** Override path to glorious_battery.py (leave empty for bundled script). */
+	scriptPath?: string;
+	/** Seconds between polls (minimum 5). */
+	pollSeconds?: number;
+};
+
+function parseBatteryJsonFromStdout(stdout: string | undefined): BatteryJson | null {
+	if (stdout === undefined || stdout === "") {
+		return null;
+	}
+	const text = stdout.replace(/^\uFEFF/, "");
+	const lines = text
+		.split(/\r?\n/)
+		.map((l) => l.trim())
+		.filter((l) => l.length > 0);
+	const jsonLines = lines.filter((l) => l.startsWith("{"));
+	const candidates =
+		jsonLines.length > 0 ? [...jsonLines].reverse() : lines.length > 0 ? [lines[lines.length - 1]!] : [];
+
+	for (const line of candidates) {
+		if (!line.startsWith("{")) {
+			continue;
+		}
+		try {
+			const o = JSON.parse(line) as unknown;
+			if (
+				o !== null &&
+				typeof o === "object" &&
+				"ok" in o &&
+				typeof (o as { ok: unknown }).ok === "boolean"
+			) {
+				return o as BatteryJson;
+			}
+		} catch {
+			/* try next line */
+		}
+	}
+	return null;
+}
+
+/**
+ * Stream Deck often inherits a minimal PATH; on Windows `python` may be missing while `py` works.
+ * Tries launchers in order until one produces parseable battery JSON (so a broken `py -3` without
+ * hidapi does not block a working `python`). Honors explicit `pythonPath` as exe or `exe` + args.
+ */
+function spawnPythonJson(
+	script: string,
+	configuredPath: string | undefined,
+): SpawnSyncReturns<string> {
+	const scriptArgs = [script, "--json"];
+	const configured = configuredPath?.trim();
+
+	const attempts: Array<{ exe: string; prefix: string[] }> = [];
+
+	if (configured) {
+		const parts = configured.match(/(?:[^\s"]+|"[^"]*")+/g);
+		if (parts?.length) {
+			const argv = parts.map((p) => p.replace(/^"|"$/g, ""));
+			attempts.push({ exe: argv[0]!, prefix: argv.slice(1) });
+		}
+	} else if (process.platform === "win32") {
+		attempts.push({ exe: "py", prefix: ["-3"] });
+		attempts.push({ exe: "python", prefix: [] });
+		attempts.push({ exe: "python3", prefix: [] });
+	} else {
+		attempts.push({ exe: "python3", prefix: [] });
+		attempts.push({ exe: "python", prefix: [] });
+	}
+
+	let last: SpawnSyncReturns<string> | undefined;
+	for (const a of attempts) {
+		const r = spawnSync(a.exe, [...a.prefix, ...scriptArgs], SPAWN_OPTS);
+		last = r;
+		const err = r.error as NodeJS.ErrnoException | undefined;
+		if (err?.code === "ENOENT") {
+			continue;
+		}
+		if (parseBatteryJsonFromStdout(r.stdout) !== null) {
+			return r;
+		}
+	}
+	return last ?? spawnSync("python", scriptArgs, SPAWN_OPTS);
+}
 
 @action({ UUID: "com.t3lluz.modelobattery.battery" })
 export class GloriousBatteryAction extends SingletonAction<BatterySettings> {
@@ -116,18 +200,11 @@ export class GloriousBatteryAction extends SingletonAction<BatterySettings> {
 		this.busy.add(action.id);
 
 		try {
-			const python =
-				settings.pythonPath?.trim() ||
-				(process.platform === "win32" ? "python" : "python3");
 			const script = settings.scriptPath?.trim() || DEFAULT_SCRIPT;
 
-			const result = spawnSync(python, [script, "--json"], {
-				encoding: "utf-8",
-				timeout: 20_000,
-				windowsHide: true,
-			});
+			const result = spawnPythonJson(script, settings.pythonPath);
 
-			const imgOpts = { target: Target.HardwareAndSoftware as const };
+			const imgOpts = { target: Target.HardwareAndSoftware as const, state: 0 };
 
 			if (result.error) {
 				streamDeck.logger.warn(`spawn failed: ${result.error.message}`);
@@ -136,12 +213,11 @@ export class GloriousBatteryAction extends SingletonAction<BatterySettings> {
 				return;
 			}
 
-			let data: BatteryJson;
-			try {
-				const line = (result.stdout ?? "").trim();
-				data = JSON.parse(line) as BatteryJson;
-			} catch (e) {
-				streamDeck.logger.warn(`bad JSON: ${(e as Error).message} stdout=${result.stdout?.slice(0, 200)}`);
+			const data = parseBatteryJsonFromStdout(result.stdout);
+			if (!data) {
+				streamDeck.logger.warn(
+					`no battery JSON after trying Python launchers. stderr=${(result.stderr ?? "").slice(0, 400)} stdout=${(result.stdout ?? "").slice(0, 300)}`,
+				);
 				await action.setTitle("");
 				await action.setImage(buildErrorKeyDataUrl("—"), imgOpts);
 				return;
@@ -154,11 +230,20 @@ export class GloriousBatteryAction extends SingletonAction<BatterySettings> {
 				return;
 			}
 
+			const level = Math.round(Number(data.level));
+			if (!Number.isFinite(level)) {
+				streamDeck.logger.warn(`invalid battery level in JSON: ${JSON.stringify(data.level)}`);
+				await action.setTitle("");
+				await action.setImage(buildErrorKeyDataUrl("—"), imgOpts);
+				return;
+			}
+			const clamped = Math.min(100, Math.max(0, level));
+
 			// Match glorious_battery.py read_battery(): bool charging OR status label.
 			const charging =
 				Boolean(data.charging) || data.status === "Charging";
 			await action.setTitle("");
-			await action.setImage(buildBatteryKeyDataUrl(data.level, charging), imgOpts);
+			await action.setImage(buildBatteryKeyDataUrl(clamped, charging), imgOpts);
 		} finally {
 			this.busy.delete(action.id);
 		}
